@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>兒童 AI 互動學習中心</title>
+    <title>兒童 互動學習中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
@@ -11,38 +11,42 @@
         body { background-color: #f0f4f8; font-family: 'Noto Sans TC', sans-serif; }
         .card { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .card:hover { transform: scale(1.03); cursor: pointer; }
-        h1, h2 { font-family: 'Comfortaa', cursive; }
         .nav-panel { transition: opacity 0.5s ease; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="p-4 md:p-10">
 
-    <div id="app" class="max-w-6xl mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-gray-800">🍎 兒童 AI 學習中心</h1>
-            <p class="text-gray-500 mt-2" id="status-msg">請選擇年級開始學習</p>
-        </header>
-        
-        <div id="nav-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div id="grade-panel" class="bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-blue-400">
-                <h2 class="text-2xl font-bold mb-6 text-blue-600">🎒 1. 年級</h2>
-                <div id="grade-list" class="grid grid-cols-2 gap-4">
-                    <button onclick="loadGrade('P1')" class="card bg-blue-50 p-5 rounded-2xl text-center border-2 border-blue-100 font-bold text-blue-800">小學一年級</button>
-                    <button onclick="loadGrade('P2')" class="card bg-blue-50 p-5 rounded-2xl text-center border-2 border-blue-100 font-bold text-blue-800">小學二年級</button>
+    <div id="app" class="max-w-4xl mx-auto">
+        <!-- 導航區 -->
+        <div id="navigation-zone">
+            <header class="text-center mb-10">
+                <h1 class="text-4xl font-bold text-gray-800">🍎 兒童 AI 學習中心</h1>
+                <p class="text-gray-500 mt-2" id="status-msg">載入中...</p>
+            </header>
+            
+            <div id="nav-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div id="grade-panel" class="bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-blue-400">
+                    <h2 class="text-2xl font-bold mb-6 text-blue-600">🎒 1. 年級</h2>
+                    <div id="grade-list" class="grid grid-cols-2 gap-4">
+                        <button onclick="loadGrade('P1')" class="card bg-blue-50 p-4 rounded-2xl text-center font-bold text-blue-800 border-2 border-blue-100">一年級</button>
+                        <button onclick="loadGrade('P2')" class="card bg-blue-50 p-4 rounded-2xl text-center font-bold text-blue-800 border-2 border-blue-100">二年級</button>
+                    </div>
+                </div>
+                <div id="subject-panel" class="nav-panel bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-orange-400 opacity-40 pointer-events-none">
+                    <h2 class="text-2xl font-bold mb-6 text-orange-600">📚 2. 科目</h2>
+                    <div id="subject-list" class="space-y-4"></div>
+                </div>
+                <div id="topic-panel" class="nav-panel bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-green-400 opacity-40 pointer-events-none">
+                    <h2 class="text-2xl font-bold mb-6 text-green-600">🎯 3. 課題</h2>
+                    <div id="topic-list" class="space-y-4"></div>
                 </div>
             </div>
+        </div>
 
-            <div id="subject-panel" class="nav-panel bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-orange-400 opacity-40 pointer-events-none">
-                <h2 class="text-2xl font-bold mb-6 text-orange-600">📚 2. 科目</h2>
-                <div id="subject-list" class="space-y-4"></div>
-            </div>
-
-            <div id="topic-panel" class="nav-panel bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-green-400 opacity-40 pointer-events-none">
-                <h2 class="text-2xl font-bold mb-6 text-green-600">🎯 3. 課題</h2>
-                <div id="topic-list" class="space-y-4"></div>
-            </div>
+        <!-- 答題區 (初始隱藏) -->
+        <div id="quiz-zone" class="hidden bg-white p-10 rounded-[2rem] shadow-2xl">
+            <button onclick="location.reload()" class="mb-6 text-gray-400 hover:text-gray-600">← 返回選單</button>
+            <div id="quiz-content"></div>
         </div>
     </div>
 
@@ -50,37 +54,66 @@
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSomCwygofGkyYLUyHX_ius3waSRjxzna6d4D-1vg9Wt2uqJfAeOFqMi56q8kGFPSk5oOEW0WVLQWGT/pub?output=csv';
         let fullData = [];
 
-        // 初始化：預先抓取所有資料
         Papa.parse(CSV_URL, {
             download: true,
             header: true,
             complete: function(results) {
                 fullData = results.data;
-                document.getElementById('status-msg').innerText = "資料已同步，請選擇年級";
+                document.getElementById('status-msg').innerText = "請選擇年級開始學習";
             }
         });
 
         function loadGrade(grade) {
             enablePanel('subject-panel');
             const subjects = [...new Set(fullData.filter(r => r.Grade === grade).map(r => r.Subject))];
-            const list = document.getElementById('subject-list');
-            list.innerHTML = '';
-            subjects.forEach(sub => {
-                list.innerHTML += `<button onclick="loadTopics('${grade}', '${sub}')" class="card bg-orange-50 p-4 rounded-2xl w-full text-left font-bold text-orange-800 border-2 border-orange-100">✨ ${sub}</button>`;
-            });
+            renderList('subject-list', subjects, (sub) => `loadTopics('${grade}', '${sub}')`, '✨');
         }
 
         function loadTopics(grade, subject) {
             enablePanel('topic-panel');
             const topics = fullData.filter(r => r.Grade === grade && r.Subject === subject).map(r => r.Topic);
-            const list = document.getElementById('topic-list');
-            list.innerHTML = '';
-            topics.forEach(topic => {
-                list.innerHTML += `<button class="card bg-green-50 p-4 rounded-2xl w-full text-left font-bold text-green-800 border-2 border-green-100">🚀 ${topic}</button>`;
+            renderList('topic-list', topics, (topic) => `startQuiz('${grade}', '${topic}')`, '🚀');
+        }
+
+        function startQuiz(grade, topic) {
+            document.getElementById('navigation-zone').classList.add('hidden');
+            const quizZone = document.getElementById('quiz-zone');
+            quizZone.classList.remove('hidden');
+            
+            // 篩選題目 (假設題目在其他分頁，這裡示範邏輯)
+            const questions = fullData.filter(r => r.Topic === topic);
+            const container = document.getElementById('quiz-content');
+            
+            container.innerHTML = `<h2 class="text-3xl font-bold mb-6">${topic}</h2>`;
+            questions.forEach((q, index) => {
+                container.innerHTML += `
+                    <div class="mb-8 p-6 bg-gray-50 rounded-xl">
+                        <p class="text-xl font-bold mb-4">${index + 1}. ${q.Question}</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="bg-white p-4 rounded-lg border-2 hover:border-blue-300" onclick="check('${q.Correct}', '${q.Option1}', this)">${q.Option1}</button>
+                            <button class="bg-white p-4 rounded-lg border-2 hover:border-blue-300" onclick="check('${q.Correct}', '${q.Option2}', this)">${q.Option2}</button>
+                        </div>
+                    </div>`;
             });
         }
 
-        function enablePanel(id) { const p = document.getElementById(id); p.style.opacity = "1"; p.style.pointerEvents = "auto"; }
+        function check(correct, selected, btn) {
+            btn.style.backgroundColor = (correct === selected) ? '#bbf7d0' : '#fecaca';
+        }
+
+        function renderList(listId, items, onClickFn, icon) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            items.forEach(item => {
+                list.innerHTML += `<button onclick="${onClickFn(item)}" class="card bg-orange-50 p-4 rounded-2xl w-full text-left font-bold text-orange-800 border-2 border-orange-100">${icon} ${item}</button>`;
+            });
+        }
+
+        function enablePanel(id) { 
+            const p = document.getElementById(id); 
+            p.style.opacity = "1"; 
+            p.style.pointerEvents = "auto"; 
+        }
     </script>
 </body>
 </html>
