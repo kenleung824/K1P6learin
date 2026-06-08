@@ -3,117 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>兒童 互動學習中心</title>
+    <title>兒童 AI 互動學習中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet">
     <style>
         body { background-color: #f0f4f8; font-family: 'Noto Sans TC', sans-serif; }
-        .card { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .card:hover { transform: scale(1.03); cursor: pointer; }
+        .card { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .card:hover { transform: scale(1.02); cursor: pointer; }
         .nav-panel { transition: opacity 0.5s ease; }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-6">
 
     <div id="app" class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">🍎 兒童 AI 學習中心</h1>
+            <p class="text-gray-500 mt-2" id="status-msg">正在同步課程結構...</p>
+        </header>
+
         <!-- 導航區 -->
-        <div id="navigation-zone">
-            <header class="text-center mb-10">
-                <h1 class="text-4xl font-bold text-gray-800">🍎 兒童 AI 學習中心</h1>
-                <p class="text-gray-500 mt-2" id="status-msg">載入中...</p>
-            </header>
-            
-            <div id="nav-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div id="grade-panel" class="bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-blue-400">
-                    <h2 class="text-2xl font-bold mb-6 text-blue-600">🎒 1. 年級</h2>
-                    <div id="grade-list" class="grid grid-cols-2 gap-4">
-                        <button onclick="loadGrade('P1')" class="card bg-blue-50 p-4 rounded-2xl text-center font-bold text-blue-800 border-2 border-blue-100">一年級</button>
-                        <button onclick="loadGrade('P2')" class="card bg-blue-50 p-4 rounded-2xl text-center font-bold text-blue-800 border-2 border-blue-100">二年級</button>
-                    </div>
+        <div id="nav-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div id="grade-panel" class="bg-white p-6 rounded-3xl shadow-lg border-t-8 border-blue-400">
+                <h2 class="text-xl font-bold mb-4 text-blue-600">🎒 1. 年級</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="selectGrade('P1')" class="card bg-blue-50 p-3 rounded-xl font-bold text-blue-800 border-2 border-blue-100">一年級</button>
+                    <button onclick="selectGrade('P2')" class="card bg-blue-50 p-3 rounded-xl font-bold text-blue-800 border-2 border-blue-100">二年級</button>
                 </div>
-                <div id="subject-panel" class="nav-panel bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-orange-400 opacity-40 pointer-events-none">
-                    <h2 class="text-2xl font-bold mb-6 text-orange-600">📚 2. 科目</h2>
-                    <div id="subject-list" class="space-y-4"></div>
-                </div>
-                <div id="topic-panel" class="nav-panel bg-white p-8 rounded-[2rem] shadow-xl border-t-8 border-green-400 opacity-40 pointer-events-none">
-                    <h2 class="text-2xl font-bold mb-6 text-green-600">🎯 3. 課題</h2>
-                    <div id="topic-list" class="space-y-4"></div>
-                </div>
+            </div>
+            <div id="subject-panel" class="nav-panel bg-white p-6 rounded-3xl shadow-lg border-t-8 border-orange-400 opacity-40 pointer-events-none">
+                <h2 class="text-xl font-bold mb-4 text-orange-600">📚 2. 科目</h2>
+                <div id="subject-list" class="space-y-2"></div>
+            </div>
+            <div id="topic-panel" class="nav-panel bg-white p-6 rounded-3xl shadow-lg border-t-8 border-green-400 opacity-40 pointer-events-none">
+                <h2 class="text-xl font-bold mb-4 text-green-600">🎯 3. 課題</h2>
+                <div id="topic-list" class="space-y-2"></div>
             </div>
         </div>
 
-        <!-- 答題區 (初始隱藏) -->
-        <div id="quiz-zone" class="hidden bg-white p-10 rounded-[2rem] shadow-2xl">
-            <button onclick="location.reload()" class="mb-6 text-gray-400 hover:text-gray-600">← 返回選單</button>
+        <!-- 題目顯示區 -->
+        <div id="quiz-zone" class="hidden mt-8 bg-white p-8 rounded-3xl shadow-xl">
+            <button onclick="location.reload()" class="mb-8 px-8 py-4 bg-gray-200 hover:bg-gray-300 rounded-full font-bold text-lg text-gray-700 transition">
+                ⬅️ 返回主選單
+            </button>
             <div id="quiz-content"></div>
         </div>
     </div>
 
     <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSomCwygofGkyYLUyHX_ius3waSRjxzna6d4D-1vg9Wt2uqJfAeOFqMi56q8kGFPSk5oOEW0WVLQWGT/pub?output=csv';
-        let fullData = [];
+        const CURRICULUM_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSomCwygofGkyYLUyHX_ius3waSRjxzna6d4D-1vg9Wt2uqJfAeOFqMi56q8kGFPSk5oOEW0WVLQWGT/pub?gid=0&single=true&output=csv';
+        const QUESTION_URLS = {
+            'P1': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSomCwygofGkyYLUyHX_ius3waSRjxzna6d4D-1vg9Wt2uqJfAeOFqMi56q8kGFPSk5oOEW0WVLQWGT/pub?gid=943563420&single=true&output=csv',
+            'P2': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSomCwygofGkyYLUyHX_ius3waSRjxzna6d4D-1vg9Wt2uqJfAeOFqMi56q8kGFPSk5oOEW0WVLQWGT/pub?gid=1209499668&single=true&output=csv'
+        };
 
-        Papa.parse(CSV_URL, {
-            download: true,
-            header: true,
-            complete: function(results) {
-                fullData = results.data;
-                document.getElementById('status-msg').innerText = "請選擇年級開始學習";
-            }
-        });
+        let curriculumData = [], currentQuizData = [];
 
-        function loadGrade(grade) {
-            enablePanel('subject-panel');
-            const subjects = [...new Set(fullData.filter(r => r.Grade === grade).map(r => r.Subject))];
-            renderList('subject-list', subjects, (sub) => `loadTopics('${grade}', '${sub}')`, '✨');
+        Papa.parse(CURRICULUM_URL, { download: true, header: true, complete: res => { curriculumData = res.data; document.getElementById('status-msg').innerText = "請選擇年級"; } });
+
+        function selectGrade(grade) {
+            document.getElementById('status-msg').innerText = "載入中...";
+            Papa.parse(QUESTION_URLS[grade], { download: true, header: true, complete: res => {
+                currentQuizData = res.data;
+                enablePanel('subject-panel');
+                const subs = [...new Set(curriculumData.filter(r => r.Grade === grade).map(r => r.Subject))];
+                renderList('subject-list', subs, (sub) => `loadTopics('${grade}', '${sub}')`);
+                document.getElementById('status-msg').innerText = "請選擇科目";
+            }});
         }
 
-        function loadTopics(grade, subject) {
+        function loadTopics(grade, sub) {
             enablePanel('topic-panel');
-            const topics = fullData.filter(r => r.Grade === grade && r.Subject === subject).map(r => r.Topic);
-            renderList('topic-list', topics, (topic) => `startQuiz('${grade}', '${topic}')`, '🚀');
+            const topics = [...new Set(curriculumData.filter(r => r.Grade === grade && r.Subject === sub).map(r => r.Topic))];
+            renderList('topic-list', topics, (topic) => `startQuiz('${topic}')`);
         }
 
-        function startQuiz(grade, topic) {
-            document.getElementById('navigation-zone').classList.add('hidden');
-            const quizZone = document.getElementById('quiz-zone');
-            quizZone.classList.remove('hidden');
-            
-            // 篩選題目 (假設題目在其他分頁，這裡示範邏輯)
-            const questions = fullData.filter(r => r.Topic === topic);
+        function startQuiz(topic) {
+            document.getElementById('nav-container').classList.add('hidden');
+            document.getElementById('quiz-zone').classList.remove('hidden');
+            const questions = currentQuizData.filter(r => r.Topic === topic);
             const container = document.getElementById('quiz-content');
+            container.innerHTML = `<h2 class="text-3xl font-bold mb-8 text-blue-600">🎯 ${topic}</h2>`;
             
-            container.innerHTML = `<h2 class="text-3xl font-bold mb-6">${topic}</h2>`;
-            questions.forEach((q, index) => {
+            questions.forEach((q, i) => {
+                // 動態獲取四個選項
+                const options = [q.Option1, q.Option2, q.Option3, q.Option4].filter(o => o && o.trim() !== "");
                 container.innerHTML += `
-                    <div class="mb-8 p-6 bg-gray-50 rounded-xl">
-                        <p class="text-xl font-bold mb-4">${index + 1}. ${q.Question}</p>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button class="bg-white p-4 rounded-lg border-2 hover:border-blue-300" onclick="check('${q.Correct}', '${q.Option1}', this)">${q.Option1}</button>
-                            <button class="bg-white p-4 rounded-lg border-2 hover:border-blue-300" onclick="check('${q.Correct}', '${q.Option2}', this)">${q.Option2}</button>
+                    <div class="mb-10 p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                        <p class="font-bold text-xl mb-5 text-gray-800">${i + 1}. ${q.Question || '題目載入中...'}</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${options.map(opt => `
+                                <button class="bg-white p-5 rounded-2xl border-2 hover:border-blue-300 hover:bg-blue-50 transition text-lg font-medium shadow-sm" onclick="check('${q.Correct}', '${opt}', this)">${opt}</button>
+                            `).join('')}
                         </div>
                     </div>`;
             });
         }
 
-        function check(correct, selected, btn) {
-            btn.style.backgroundColor = (correct === selected) ? '#bbf7d0' : '#fecaca';
+        function check(cor, sel, btn) { btn.style.backgroundColor = (cor.trim() === sel.trim()) ? '#86efac' : '#fca5a5'; }
+        function renderList(id, items, fn) {
+            const list = document.getElementById(id); list.innerHTML = '';
+            items.forEach(item => list.innerHTML += `<button onclick="${fn(item)}" class="card bg-orange-50 p-4 rounded-xl w-full text-left font-bold border-2 border-orange-100 text-orange-900">${item}</button>`);
         }
-
-        function renderList(listId, items, onClickFn, icon) {
-            const list = document.getElementById(listId);
-            list.innerHTML = '';
-            items.forEach(item => {
-                list.innerHTML += `<button onclick="${onClickFn(item)}" class="card bg-orange-50 p-4 rounded-2xl w-full text-left font-bold text-orange-800 border-2 border-orange-100">${icon} ${item}</button>`;
-            });
-        }
-
-        function enablePanel(id) { 
-            const p = document.getElementById(id); 
-            p.style.opacity = "1"; 
-            p.style.pointerEvents = "auto"; 
-        }
+        function enablePanel(id) { const p = document.getElementById(id); p.style.opacity = "1"; p.style.pointerEvents = "auto"; }
     </script>
 </body>
 </html>
