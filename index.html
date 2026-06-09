@@ -2,12 +2,21 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>🍎 學習冒險王</title>
+    <title>🍎 兒童學習冒險王</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+        body { font-family: 'Fredoka', sans-serif; background: #f0f4f8; }
+        .card { transition: all 0.2s; cursor: pointer; }
+        .card:hover { transform: scale(1.02); }
+        .fade-in { animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
 </head>
-<body class="p-4 md:p-10 bg-[#f0f4f8]">
+<body class="p-4 md:p-10">
+
     <div class="max-w-3xl mx-auto">
-        <div id="header-zone" class="flex justify-between items-center mb-8">
+        <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-teal-700">🍎 學習冒險</h1>
             <div id="score-bar" class="hidden text-xl font-bold text-orange-500 bg-white px-6 py-2 rounded-full shadow-md">
                 🥕 紅蘿蔔: <span id="score">0</span>
@@ -16,100 +25,66 @@
 
         <div id="nav-container" class="space-y-6">
             <div id="grade-panel" class="bg-white p-6 rounded-3xl shadow-lg border-t-8 border-blue-400">
-                <h2 class="text-xl font-bold mb-4">🎒 1. 請選年級</h2>
-                <div class="grid grid-cols-2 gap-4" id="grade-list"></div>
+                <h2 class="text-xl font-bold mb-4">🎒 1. 年級</h2>
+                <div id="grade-list" class="grid grid-cols-2 gap-4"></div>
             </div>
             <div id="subject-panel" class="hidden bg-white p-6 rounded-3xl shadow-lg border-t-8 border-orange-400">
-                <h2 class="text-xl font-bold mb-4">📚 2. 請選科目</h2>
+                <h2 class="text-xl font-bold mb-4">📚 2. 科目</h2>
                 <div id="subject-list" class="grid grid-cols-2 gap-4"></div>
             </div>
             <div id="topic-panel" class="hidden bg-white p-6 rounded-3xl shadow-lg border-t-8 border-green-400">
-                <h2 class="text-xl font-bold mb-4">🎯 3. 請選課題</h2>
+                <h2 class="text-xl font-bold mb-4">🎯 3. 課題</h2>
                 <div id="topic-list" class="grid grid-cols-1 gap-4"></div>
             </div>
         </div>
 
-        <div id="quiz-zone" class="hidden bg-white p-8 rounded-3xl shadow-xl">
-            <button onclick="location.reload()" class="mb-6 px-6 py-2 bg-gray-100 rounded-full font-bold">⬅️ 返回選單</button>
+        <div id="quiz-zone" class="hidden bg-white p-8 rounded-3xl shadow-xl fade-in">
+            <button onclick="location.reload()" class="mb-6 px-6 py-2 bg-gray-100 rounded-full font-bold hover:bg-gray-200">⬅️ 返回選單</button>
             <div id="quiz-content"></div>
+            <div id="feedback" class="mt-6 text-center font-bold text-2xl h-10"></div>
         </div>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx6sc4HQAhdyZpKCYcMdvS8HuUgvTgmuvhJTfzgMi33csL7YF82jOoGvtHnEAf-SHoC/exec";
-        let score = 0, currentQuestions = [], fullData = [];
+        let fullCurriculum = [], score = 0, currentQuestions = [];
 
-        // 核心修正：在程式啟動時先抓取所有必要的資料表結構
-        // 假設我們需要抓取 Curriculum 和 對應年級的題目
-        async function init() {
-            const currRes = await fetch(API_URL + "?sheet=Curriculum");
-            const currData = await currRes.json();
-            const grades = [...new Set(currData.map(r => r.Grade))];
-            grades.forEach(g => {
-                document.getElementById('grade-list').innerHTML += `<button onclick="selectGrade('${g}')" class="bg-blue-50 p-4 rounded-2xl font-bold">${g}</button>`;
-            });
-            window.fullData = currData; // 存到全域
-        }
-        init();
+        // 初始化：讀取 Curriculum
+        fetch(API_URL + "?sheet=Curriculum").then(res => res.json()).then(data => {
+            fullCurriculum = data;
+            const grades = [...new Set(data.map(r => r.Grade))];
+            document.getElementById('grade-list').innerHTML = grades.map(g => 
+                `<button onclick="selectGrade('${g}')" class="card bg-blue-50 p-4 rounded-2xl font-bold border-2 border-blue-200">${g}</button>`
+            ).join('');
+        });
 
-        async function selectGrade(grade) {
+        function selectGrade(grade) {
             document.getElementById('subject-panel').classList.remove('hidden');
-            // 確保資料抓完再渲染
-            const res = await fetch(`${API_URL}?sheet=Q_${grade}`);
-            const data = await res.json();
-            window.gradeData = data; // 存該年級完整題目
-            
-            const subs = [...new Set(data.map(r => r.Subject))];
-            document.getElementById('subject-list').innerHTML = subs.map(s => `<button onclick="selectTopic('${s}')" class="bg-orange-50 p-4 rounded-2xl font-bold">${s}</button>`).join('');
+            const subs = [...new Set(fullCurriculum.filter(r => r.Grade === grade).map(r => r.Subject))];
+            document.getElementById('subject-list').innerHTML = subs.map(s => 
+                `<button onclick="selectTopic('${grade}', '${s}')" class="card bg-orange-50 p-4 rounded-2xl font-bold border-2 border-orange-200">${s}</button>`
+            ).join('');
         }
 
-        function selectTopic(sub) {
+        function selectTopic(grade, sub) {
             document.getElementById('topic-panel').classList.remove('hidden');
-            const topics = [...new Set(window.gradeData.filter(r => r.Subject === sub).map(r => r.Topic))];
-            document.getElementById('topic-list').innerHTML = topics.map(t => `<button onclick="startQuiz('${sub}', '${t}')" class="bg-green-50 p-4 rounded-2xl font-bold">${t}</button>`).join('');
+            const topics = [...new Set(fullCurriculum.filter(r => r.Grade === grade && r.Subject === sub).map(r => r.Topic))];
+            document.getElementById('topic-list').innerHTML = topics.map(t => 
+                `<button onclick="loadAndStart('${grade}', '${t}')" class="card bg-green-50 p-4 rounded-2xl font-bold border-2 border-green-200">${t}</button>`
+            ).join('');
         }
 
-        function startQuiz(sub, topic) {
+        async function loadAndStart(grade, topic) {
             document.getElementById('nav-container').classList.add('hidden');
             document.getElementById('quiz-zone').classList.remove('hidden');
             document.getElementById('score-bar').classList.remove('hidden');
-            
-            // 這裡篩選時，window.gradeData 已經是完整的該年級所有題目，不會再丟失
-            currentQuestions = window.gradeData.filter(r => r.Subject === sub && r.Topic === topic)
-                                               .sort(() => 0.5 - Math.random());
-            
-            // 這裡我們不再用 slice(0, 20)，先全部顯示，看看是否能讀取到那 100 題
-            // 如果數量正常，您再把 .slice(0, 20) 加回去
-            renderQuestion(0);
-        }
+            document.getElementById('quiz-content').innerHTML = "正在載入題目，請稍候...";
 
-        function renderQuestion(idx) {
-            if (idx >= currentQuestions.length) {
-                document.getElementById('quiz-content').innerHTML = `<h2 class="text-3xl text-center">🎉 練習結束！總分: ${score}</h2>`;
-                return;
+            // 檢查快取
+            if (!window.cachedData || window.currentGrade !== grade) {
+                const res = await fetch(`${API_URL}?sheet=Q_${grade}`);
+                window.cachedData = await res.json();
+                window.currentGrade = grade;
             }
-            const q = currentQuestions[idx];
-            const options = [q.Option_A, q.Option_B, q.Option_C, q.Option_D].filter(o => o);
-            document.getElementById('quiz-content').innerHTML = `
-                <p class="text-sm text-gray-400 mb-2">題目總數: ${currentQuestions.length} | 第 ${idx + 1} 題</p>
-                <h2 class="text-2xl font-bold mb-6">${q.Question}</h2>
-                <div class="grid grid-cols-1 gap-4">
-                    ${options.map(opt => `<button onclick="check('${opt}', '${q.Correct}', ${idx}, this)" class="p-5 rounded-2xl border-2 border-gray-200 hover:bg-blue-50">${opt}</button>`).join('')}
-                </div>
-            `;
-        }
-
-        function check(sel, cor, idx, btn) {
-            if (sel.trim() === cor.trim()) {
-                score += 10;
-                document.getElementById('score').innerText = score;
-                btn.classList.add('bg-green-200');
-                setTimeout(() => renderQuestion(idx + 1), 500);
-            } else {
-                btn.classList.add('bg-red-200');
-                setTimeout(() => btn.classList.remove('bg-red-200'), 500);
-            }
-        }
-    </script>
-</body>
-</html>
+            
+            // 隨機抽題：從篩
