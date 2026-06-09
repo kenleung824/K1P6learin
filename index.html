@@ -4,17 +4,10 @@
     <meta charset="UTF-8">
     <title>🍎 學習冒險王</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
-        body { font-family: 'Fredoka', sans-serif; background: #f0f4f8; }
-        .card { transition: transform 0.2s; }
-        .card:active { transform: scale(0.95); }
-    </style>
 </head>
-<body class="p-4 md:p-10">
-
+<body class="p-4 md:p-10 bg-[#f0f4f8]">
     <div class="max-w-3xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
+        <div id="header-zone" class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-teal-700">🍎 學習冒險</h1>
             <div id="score-bar" class="hidden text-xl font-bold text-orange-500 bg-white px-6 py-2 rounded-full shadow-md">
                 🥕 紅蘿蔔: <span id="score">0</span>
@@ -37,47 +30,43 @@
         </div>
 
         <div id="quiz-zone" class="hidden bg-white p-8 rounded-3xl shadow-xl">
-            <button onclick="location.reload()" class="mb-6 px-6 py-2 bg-gray-100 rounded-full font-bold hover:bg-gray-200">⬅️ 返回選單</button>
+            <button onclick="location.reload()" class="mb-6 px-6 py-2 bg-gray-100 rounded-full font-bold">⬅️ 返回選單</button>
             <div id="quiz-content"></div>
         </div>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx6sc4HQAhdyZpKCYcMdvS8HuUgvTgmuvhJTfzgMi33csL7YF82jOoGvtHnEAf-SHoC/exec";
-        let score = 0, currentQuestions = [], gradeData = [];
+        let score = 0, currentQuestions = [], fullData = [];
 
-        // 初始化
-        fetch(API_URL + "?sheet=Curriculum")
-            .then(res => res.json())
-            .then(data => {
-                const grades = [...new Set(data.map(r => r.Grade))];
-                grades.forEach(g => {
-                    document.getElementById('grade-list').innerHTML += `<button onclick="selectGrade('${g}')" class="card bg-blue-50 p-4 rounded-2xl font-bold text-blue-700 border-2 border-blue-200">${g}</button>`;
-                });
+        // 核心修正：在程式啟動時先抓取所有必要的資料表結構
+        // 假設我們需要抓取 Curriculum 和 對應年級的題目
+        async function init() {
+            const currRes = await fetch(API_URL + "?sheet=Curriculum");
+            const currData = await currRes.json();
+            const grades = [...new Set(currData.map(r => r.Grade))];
+            grades.forEach(g => {
+                document.getElementById('grade-list').innerHTML += `<button onclick="selectGrade('${g}')" class="bg-blue-50 p-4 rounded-2xl font-bold">${g}</button>`;
             });
+            window.fullData = currData; // 存到全域
+        }
+        init();
 
-        function selectGrade(grade) {
+        async function selectGrade(grade) {
             document.getElementById('subject-panel').classList.remove('hidden');
-            fetch(`${API_URL}?sheet=Q_${grade}`).then(res => res.json()).then(data => {
-                gradeData = data; 
-                const subs = [...new Set(data.map(r => r.Subject))];
-                const list = document.getElementById('subject-list');
-                list.innerHTML = '';
-                subs.forEach(s => {
-                    list.innerHTML += `<button onclick="selectTopic('${s}')" class="card bg-orange-50 p-4 rounded-2xl font-bold text-orange-700 border-2 border-orange-200">${s}</button>`;
-                });
-            });
+            // 確保資料抓完再渲染
+            const res = await fetch(`${API_URL}?sheet=Q_${grade}`);
+            const data = await res.json();
+            window.gradeData = data; // 存該年級完整題目
+            
+            const subs = [...new Set(data.map(r => r.Subject))];
+            document.getElementById('subject-list').innerHTML = subs.map(s => `<button onclick="selectTopic('${s}')" class="bg-orange-50 p-4 rounded-2xl font-bold">${s}</button>`).join('');
         }
 
-        // 新增課題選單
         function selectTopic(sub) {
             document.getElementById('topic-panel').classList.remove('hidden');
-            const topics = [...new Set(gradeData.filter(r => r.Subject === sub).map(r => r.Topic))];
-            const list = document.getElementById('topic-list');
-            list.innerHTML = '';
-            topics.forEach(t => {
-                list.innerHTML += `<button onclick="startQuiz('${sub}', '${t}')" class="card bg-green-50 p-4 rounded-2xl font-bold text-green-700 border-2 border-green-200">${t}</button>`;
-            });
+            const topics = [...new Set(window.gradeData.filter(r => r.Subject === sub).map(r => r.Topic))];
+            document.getElementById('topic-list').innerHTML = topics.map(t => `<button onclick="startQuiz('${sub}', '${t}')" class="bg-green-50 p-4 rounded-2xl font-bold">${t}</button>`).join('');
         }
 
         function startQuiz(sub, topic) {
@@ -85,9 +74,12 @@
             document.getElementById('quiz-zone').classList.remove('hidden');
             document.getElementById('score-bar').classList.remove('hidden');
             
-            // 篩選出科目與課題都符合的題目
-            currentQuestions = gradeData.filter(r => r.Subject === sub && r.Topic === topic)
-                                        .sort(() => 0.5 - Math.random()).slice(0, 20);
+            // 這裡篩選時，window.gradeData 已經是完整的該年級所有題目，不會再丟失
+            currentQuestions = window.gradeData.filter(r => r.Subject === sub && r.Topic === topic)
+                                               .sort(() => 0.5 - Math.random());
+            
+            // 這裡我們不再用 slice(0, 20)，先全部顯示，看看是否能讀取到那 100 題
+            // 如果數量正常，您再把 .slice(0, 20) 加回去
             renderQuestion(0);
         }
 
@@ -99,10 +91,10 @@
             const q = currentQuestions[idx];
             const options = [q.Option_A, q.Option_B, q.Option_C, q.Option_D].filter(o => o);
             document.getElementById('quiz-content').innerHTML = `
-                <p class="text-sm text-gray-400 mb-2">第 ${idx + 1} / ${currentQuestions.length} 題</p>
+                <p class="text-sm text-gray-400 mb-2">題目總數: ${currentQuestions.length} | 第 ${idx + 1} 題</p>
                 <h2 class="text-2xl font-bold mb-6">${q.Question}</h2>
                 <div class="grid grid-cols-1 gap-4">
-                    ${options.map(opt => `<button onclick="check('${opt}', '${q.Correct}', ${idx}, this)" class="card p-5 rounded-2xl border-2 hover:bg-blue-50">${opt}</button>`).join('')}
+                    ${options.map(opt => `<button onclick="check('${opt}', '${q.Correct}', ${idx}, this)" class="p-5 rounded-2xl border-2 border-gray-200 hover:bg-blue-50">${opt}</button>`).join('')}
                 </div>
             `;
         }
