@@ -2,115 +2,107 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>🍎 兒童學習冒險王 </title>
+    <title>🍎 學習冒險王</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Sans+TC:wght@500;700&display=swap');
-        body { font-family: 'Fredoka', 'Noto Sans TC', sans-serif; background: radial-gradient(circle at top right, #e0f2fe, #dcfce7, #fef9c3); min-height: 100vh; }
-        .game-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 2px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
-        .btn-game { transition: all 0.2s; }
-        .btn-game:hover { transform: translateY(-3px) scale(1.02); filter: brightness(1.1); }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+        body { font-family: 'Fredoka', sans-serif; background: #f0f4f8; }
+        .card { transition: transform 0.2s; }
+        .card:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-10">
 
-    <div id="loading-overlay" class="hidden fixed inset-0 bg-white/60 flex items-center justify-center z-50">
-        <div class="flex flex-col items-center"><div class="loader mb-4"></div><p class="font-bold text-teal-800 text-xl">系統運作中...</p></div>
-    </div>
-
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-12"><h1 class="text-5xl font-bold text-teal-800 drop-shadow-md">🍎 學習冒險王</h1></header>
-
-        <div id="nav-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="game-card p-8 rounded-[2.5rem] border-b-[12px] border-teal-400">
-                <h2 class="text-2xl font-bold mb-6 text-teal-900">🎒 1. 年級</h2>
-                <div id="grade-list" class="grid grid-cols-2 gap-4"></div>
-            </div>
-            <div id="subject-panel" class="game-card p-8 rounded-[2.5rem] border-b-[12px] border-blue-400 opacity-60">
-                <h2 class="text-2xl font-bold mb-6 text-blue-900">📚 2. 科目</h2>
-                <div id="subject-list" class="space-y-4"></div>
-            </div>
-            <div id="topic-panel" class="game-card p-8 rounded-[2.5rem] border-b-[12px] border-orange-400 opacity-60">
-                <h2 class="text-2xl font-bold mb-6 text-orange-900">🎯 3. 課題</h2>
-                <div id="topic-list" class="space-y-4"></div>
+    <div class="max-w-3xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-teal-700">🍎 學習冒險</h1>
+            <div id="score-bar" class="hidden text-xl font-bold text-orange-500 bg-white px-6 py-2 rounded-full shadow-md">
+                🥕 紅蘿蔔: <span id="score">0</span>
             </div>
         </div>
 
-        <div id="quiz-zone" class="hidden game-card p-10 rounded-[3rem] mt-8">
-            <div class="flex justify-between items-center mb-8">
-                <button onclick="location.reload()" class="px-6 py-3 bg-gray-200 rounded-full font-bold text-gray-700 hover:bg-gray-300">⬅️ 返回</button>
-                <div class="text-2xl font-bold text-orange-500">🥕 紅蘿蔔: <span id="score">0</span></div>
+        <div id="nav-container" class="space-y-6">
+            <div id="grade-panel" class="bg-white p-6 rounded-3xl shadow-lg border-t-8 border-blue-400">
+                <h2 class="text-xl font-bold mb-4">🎒 1. 請選年級</h2>
+                <div class="grid grid-cols-2 gap-4" id="grade-list"></div>
             </div>
+            <div id="subject-panel" class="hidden bg-white p-6 rounded-3xl shadow-lg border-t-8 border-orange-400">
+                <h2 class="text-xl font-bold mb-4">📚 2. 請選科目</h2>
+                <div id="subject-list" class="grid grid-cols-2 gap-4"></div>
+            </div>
+            <div id="topic-panel" class="hidden bg-white p-6 rounded-3xl shadow-lg border-t-8 border-green-400">
+                <h2 class="text-xl font-bold mb-4">🎯 3. 請選課題</h2>
+                <div id="topic-list" class="grid grid-cols-1 gap-4"></div>
+            </div>
+        </div>
+
+        <div id="quiz-zone" class="hidden bg-white p-8 rounded-3xl shadow-xl">
+            <button onclick="location.reload()" class="mb-6 px-6 py-2 bg-gray-100 rounded-full font-bold hover:bg-gray-200">⬅️ 返回選單</button>
             <div id="quiz-content"></div>
         </div>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx6sc4HQAhdyZpKCYcMdvS8HuUgvTgmuvhJTfzgMi33csL7YF82jOoGvtHnEAf-SHoC/exec";
-        let score = 0, currentQuestions = [], fullData = [];
-
-        function showLoading(show) { document.getElementById('loading-overlay').classList.toggle('hidden', !show); }
+        let score = 0, currentQuestions = [], gradeData = [];
 
         // 初始化
-        showLoading(true);
-        fetch(API_URL + "?sheet=Curriculum").then(res => res.json()).then(data => {
-            fullData = data;
-            [...new Set(data.map(r => r.Grade))].forEach(g => {
-                document.getElementById('grade-list').innerHTML += `<button onclick="selectGrade('${g}')" class="btn-game bg-teal-500 text-white p-5 rounded-3xl font-bold shadow-lg">${g}</button>`;
+        fetch(API_URL + "?sheet=Curriculum")
+            .then(res => res.json())
+            .then(data => {
+                const grades = [...new Set(data.map(r => r.Grade))];
+                grades.forEach(g => {
+                    document.getElementById('grade-list').innerHTML += `<button onclick="selectGrade('${g}')" class="card bg-blue-50 p-4 rounded-2xl font-bold text-blue-700 border-2 border-blue-200">${g}</button>`;
+                });
             });
-            showLoading(false);
-        });
 
         function selectGrade(grade) {
-            showLoading(true);
-            document.getElementById('subject-panel').style.opacity = "1";
+            document.getElementById('subject-panel').classList.remove('hidden');
             fetch(`${API_URL}?sheet=Q_${grade}`).then(res => res.json()).then(data => {
-                currentQuestions = data;
+                gradeData = data; 
                 const subs = [...new Set(data.map(r => r.Subject))];
-                document.getElementById('subject-list').innerHTML = subs.map(s => `<button onclick="showTopics('${grade}', '${s}')" class="btn-game w-full bg-blue-500 text-white p-4 rounded-2xl font-bold shadow-md">${s}</button>`).join('');
-                showLoading(false);
+                const list = document.getElementById('subject-list');
+                list.innerHTML = '';
+                subs.forEach(s => {
+                    list.innerHTML += `<button onclick="selectTopic('${s}')" class="card bg-orange-50 p-4 rounded-2xl font-bold text-orange-700 border-2 border-orange-200">${s}</button>`;
+                });
             });
         }
 
-        function showTopics(grade, sub) {
-            document.getElementById('topic-panel').style.opacity = "1";
-            const topics = [...new Set(fullData.filter(r => r.Grade == grade && r.Subject == sub).map(r => r.Topic))];
-            document.getElementById('topic-list').innerHTML = topics.map(t => `<button onclick="startQuiz('${t}')" class="btn-game w-full bg-orange-500 text-white p-4 rounded-2xl font-bold shadow-md">${t}</button>`).join('');
+        // 新增課題選單
+        function selectTopic(sub) {
+            document.getElementById('topic-panel').classList.remove('hidden');
+            const topics = [...new Set(gradeData.filter(r => r.Subject === sub).map(r => r.Topic))];
+            const list = document.getElementById('topic-list');
+            list.innerHTML = '';
+            topics.forEach(t => {
+                list.innerHTML += `<button onclick="startQuiz('${sub}', '${t}')" class="card bg-green-50 p-4 rounded-2xl font-bold text-green-700 border-2 border-green-200">${t}</button>`;
+            });
         }
 
-        function startQuiz(topic) {
-            // --- 偵錯代碼區 ---
-            console.log("當前目標課題:", topic);
-            console.log("從雲端載入的總題目數:", currentQuestions.length);
-            const filtered = currentQuestions.filter(r => r.Topic == topic);
-            console.log("篩選出的該課題題目:", filtered);
-            // ------------------
-
+        function startQuiz(sub, topic) {
             document.getElementById('nav-container').classList.add('hidden');
             document.getElementById('quiz-zone').classList.remove('hidden');
+            document.getElementById('score-bar').classList.remove('hidden');
             
-            currentQuestions = filtered.sort(() => 0.5 - Math.random()).slice(0, 20);
-            
-            if (currentQuestions.length === 0) {
-                alert("找不到題目！請打開 F12 查看 Console 了解原因。");
-            } else {
-                renderQuestion(0);
-            }
+            // 篩選出科目與課題都符合的題目
+            currentQuestions = gradeData.filter(r => r.Subject === sub && r.Topic === topic)
+                                        .sort(() => 0.5 - Math.random()).slice(0, 20);
+            renderQuestion(0);
         }
 
         function renderQuestion(idx) {
             if (idx >= currentQuestions.length) {
-                document.getElementById('quiz-content').innerHTML = `<h2 class="text-4xl text-center font-bold text-teal-800">🎉 練習結束！總分: ${score}</h2>`;
+                document.getElementById('quiz-content').innerHTML = `<h2 class="text-3xl text-center">🎉 練習結束！總分: ${score}</h2>`;
                 return;
             }
             const q = currentQuestions[idx];
+            const options = [q.Option_A, q.Option_B, q.Option_C, q.Option_D].filter(o => o);
             document.getElementById('quiz-content').innerHTML = `
-                <div class="text-gray-500 mb-4 font-bold">第 ${idx + 1} / ${currentQuestions.length} 題</div>
-                <h2 class="text-3xl font-bold mb-10 text-gray-800">${q.Question}</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    ${[q.Option_A, q.Option_B, q.Option_C, q.Option_D].filter(o => o).map(o => `<button onclick="check('${o}', '${q.Correct}', ${idx}, this)" class="btn-game p-6 rounded-3xl bg-white border-4 border-gray-100 hover:border-teal-300 text-xl font-bold shadow-sm">${o}</button>`).join('')}
+                <p class="text-sm text-gray-400 mb-2">第 ${idx + 1} / ${currentQuestions.length} 題</p>
+                <h2 class="text-2xl font-bold mb-6">${q.Question}</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    ${options.map(opt => `<button onclick="check('${opt}', '${q.Correct}', ${idx}, this)" class="card p-5 rounded-2xl border-2 hover:bg-blue-50">${opt}</button>`).join('')}
                 </div>
             `;
         }
@@ -119,12 +111,11 @@
             if (sel.trim() === cor.trim()) {
                 score += 10;
                 document.getElementById('score').innerText = score;
-                btn.classList.replace('border-gray-100', 'border-green-400');
-                btn.classList.add('bg-green-50');
-                setTimeout(() => renderQuestion(idx + 1), 600);
+                btn.classList.add('bg-green-200');
+                setTimeout(() => renderQuestion(idx + 1), 500);
             } else {
-                btn.classList.add('bg-red-50', 'border-red-400');
-                setTimeout(() => btn.classList.remove('bg-red-50', 'border-red-400'), 500);
+                btn.classList.add('bg-red-200');
+                setTimeout(() => btn.classList.remove('bg-red-200'), 500);
             }
         }
     </script>
